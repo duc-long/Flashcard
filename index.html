@@ -9,6 +9,24 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/string-similarity@4.0.4/umd/string-similarity.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js"></script>
+<script>
+  // Firebase cấu hình (thay YOUR_PROJECT_ID bằng thông tin của bạn)
+  const firebaseConfig = {
+    apiKey: "AIzaSyCppp10rHDY1aZs5Gzt-dHtZUK9IBfmFyY",
+    authDomain: "flashcardlog.firebaseapp.com",
+    projectId: "flashcardlog",
+    storageBucket: "flashcardlog.firebasestorage.app",
+    messagingSenderId: "211721975391",
+    appId: "1:211721975391:web:42818a85809c0c4b8d4dea",
+    measurementId: "G-GQLBFVRSCP"
+  };
+
+  // Khởi tạo Firebase
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore(app); // Khởi tạo Firestore
+</script>
 
     <style>
         body {
@@ -1802,6 +1820,7 @@
                 </div>
             </div>
             <!-- Các thư viện cần thiết -->
+           
             <script
                 src="https://cdnjs.cloudflare.com/ajax/libs/string-similarity/4.0.4/string-similarity.min.js"></script>
             <!-- Thư viện JS cho việc xuất Word -->
@@ -1828,6 +1847,27 @@
                     correct: [],
                     incorrect: []
                 };
+                function addDataToFirestore(collection, data) {
+                    db.collection(collection).add(data)
+                        .then((docRef) => {
+                            console.log("Tài liệu được lưu với ID:", docRef.id);
+                            alert("Dữ liệu đã được lưu!");
+                        })
+                        .catch((error) => {
+                            console.error("Lỗi khi thêm dữ liệu:", error);
+                        });
+                }
+                function readDataFromFirestore(collection) {
+                    db.collection(collection).onSnapshot((querySnapshot) => {
+                        const data = [];
+                        querySnapshot.forEach((doc) => {
+                            data.push(doc.data());
+                        });
+                        console.log("Dữ liệu hiện tại:", data);
+                    });
+                }
+                                
+
                 // Variable to store current font size
                 let currentFontSize = 16; // Default font size (16px)
 
