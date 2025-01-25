@@ -1403,6 +1403,14 @@
 
             <!-- Create Tab -->
             <div class="tab-pane fade" id="create" role="tabpanel">
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h4>Nhập từ tệp JSON</h4>
+                        <p>Tải lên tệp JSON đã xuất từ Quizlet:</p>
+                        <input type="file" id="jsonFileInput" accept=".json" class="form-control-file">
+                        <button class="btn btn-primary mt-3" id="importJsonBtn">Nhập Tệp</button>
+                    </div>
+                </div>                
                 <div class="row mt-4">
                     <div class="col-md-6">
                         <div class="card">
@@ -2044,7 +2052,7 @@
                 }
 
                 // =================== Handling Decks ===================
-
+                
                 // Khi người dùng tạo bộ thẻ mới
                 document.getElementById('newDeckForm').addEventListener('submit', function (e) {
                     e.preventDefault();
@@ -2275,6 +2283,52 @@
 
                     alert(`Bộ thẻ "${deckName}" đã được chuyển sang thư mục "${newFolder}".`);
                 });
+                
+                // Hàm xử lý nhập tệp JSON
+document.getElementById("importJsonBtn").addEventListener("click", function () {
+    const fileInput = document.getElementById("jsonFileInput");
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert("Vui lòng chọn một tệp JSON!");
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (!Array.isArray(data)) {
+                alert("Tệp JSON không đúng định dạng!");
+                return;
+            }
+
+            // Chuyển dữ liệu flashcards từ file JSON vào bộ thẻ hiện tại
+            if (!currentDeck) {
+                alert("Vui lòng chọn hoặc tạo một bộ thẻ trước!");
+                return;
+            }
+
+            const currentDeckData = decks[currentDeck];
+
+            data.forEach(card => {
+                const term = card.term || "Không có thuật ngữ";
+                const definition = card.definition || "Không có định nghĩa";
+                const imageUrl = card.imageUrl || null;
+
+                currentDeckData.cards.push({ term, definition, imageUrl });
+            });
+
+            alert(`Đã thêm ${data.length} flashcards vào bộ thẻ "${currentDeck}"`);
+            updateDecksList();
+        } catch (err) {
+            alert("Đã xảy ra lỗi khi đọc tệp JSON: " + err.message);
+        }
+    };
+
+    reader.readAsText(file);
+});
 
                 // =================== Export and Copy Deck ===================
 
@@ -3125,31 +3179,28 @@
                 // Hàm xử lý khi người dùng chọn đáp án trong quiz
                 function handleOptionClick(button, selectedOption) {
                     const question = quizQuestions[currentQuestion];
-                    if (question.answered) return; // Không cho phép chọn lại nếu đã trả lời
-
-                    const isMultipleChoice = question.isMultipleChoice;
-                    const isTermToDef = document.getElementById('termTodef').checked;
-
+                    if (question.answered) return; // Không cho phép chọn lại nếu đã trả lời đúng
+                
                     const correctAnswers = question.answers.map(ans => ans.toLowerCase());
                     const userAnswer = selectedOption.toLowerCase();
-
+                
                     if (correctAnswers.includes(userAnswer)) {
                         // Đáp án đúng
                         score++;
                         question.isCorrect = true;
-                        question.answered = true;
+                        question.answered = true; // Đánh dấu câu hỏi là đã trả lời đúng
                         quizResults.correct.push({
                             question: question.question,
                             yourAnswer: selectedOption,
                             correctAnswer: question.answers.join(', '),
                             image: question.image || null
                         });
-
+                
                         // Đánh dấu nút đúng
                         button.classList.add('correct');
                         button.classList.remove('btn-outline-secondary');
                         button.disabled = true;
-
+                
                         // Highlight tất cả các đáp án đúng
                         const optionButtons = document.querySelectorAll('#optionsContainer .quiz-option');
                         optionButtons.forEach(btn => {
@@ -3160,51 +3211,49 @@
                                 btn.disabled = true;
                             }
                         });
-
+                
                         // Chuyển sang câu hỏi tiếp theo sau 0.8 giây
                         setTimeout(() => {
                             nextQuestion();
                         }, 800);
                     } else {
                         // Đáp án sai
-                        question.isCorrect = false;
-                        question.answered = true;
-                        quizResults.incorrect.push({
-                            question: question.question,
-                            yourAnswer: selectedOption,
-                            correctAnswer: question.answers.join(', '),
-                            image: question.image || null
-                        });
-
-                        // Đánh dấu nút sai và áp dụng hiệu ứng rung
+                        if (!quizResults.incorrect.some(item => item.question === question.question)) {
+                            quizResults.incorrect.push({
+                                question: question.question,
+                                yourAnswer: selectedOption,
+                                correctAnswer: question.answers.join(', '),
+                                image: question.image || null
+                            });
+                        }
+                
+                        // Đánh dấu nút sai
                         button.classList.add('incorrect');
                         button.classList.remove('btn-outline-secondary');
-
-                        // Highlight các đáp án đúng
+                
+                        // Highlight các đáp án đúng để hỗ trợ người dùng
                         const optionButtons = document.querySelectorAll('#optionsContainer .quiz-option');
                         optionButtons.forEach(btn => {
-                            const btnText = btn.textContent.slice(3).trim().toLowerCase(); // Remove "A. ", "B. ", etc.
+                            const btnText = btn.textContent.slice(3).trim().toLowerCase();
                             if (correctAnswers.includes(btnText)) {
                                 btn.classList.add('correct');
                                 btn.classList.remove('btn-outline-secondary');
-                                btn.disabled = true;
                             }
                         });
-
+                
                         // Áp dụng hiệu ứng rung cho nút sai
                         button.classList.add('shake');
-
+                
                         // Loại bỏ lớp rung sau khi hoàn thành animation
                         button.addEventListener('animationend', function () {
                             button.classList.remove('shake');
                         }, { once: true });
-
-                        // Chuyển sang câu hỏi tiếp theo sau 1 giây
-                        setTimeout(() => {
-                            nextQuestion();
-                        }, 1000);
+                
+                        // Không chuyển sang câu hỏi tiếp theo
+                        // Người dùng phải chọn đúng mới được tiếp tục
                     }
                 }
+                
 
                 // Hàm tính độ tương đồng giữa hai chuỗi
                 function calculateSimilarity(str1, str2) {
